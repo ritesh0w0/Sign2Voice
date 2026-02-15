@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+mediapipe
+deep-translator
+edge-tts
+opencv-python
+aiofiles
+numpy
