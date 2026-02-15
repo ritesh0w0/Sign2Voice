@@ -27,13 +27,8 @@ Double-click **`run.bat`** to start.
    pip install -r requirements.txt
    ```
 
-## Backing Up or Sharing (Zip Method)
-To keep a copy or share this project:
-1. Delete the `__pycache__` and `venv` folders (if they exist) to keep the file size small.
-2. Select all files in the `Sign2Voice` folder.
-3. Right-click and choose **Compress to ZIP file**.
-4. You can now save this `.zip` file locally or send it to others.
 
 ## Architecture
 - **Tech Stack**: Python, FastAPI, MediaPipe, EdgeTTS.
 - **Frontend**: HTML5, CSS3 (Glassmorphism), Vanilla JS.
+
