@@ -212,8 +212,7 @@ Sign2Voice/
 ├── docs/
 │   └── API.md                      # Comprehensive REST API specifications
 ├── scripts/
-│   ├── generate_assets.py          # Programmatic visual asset generation script
-│   └── setup_nginx.sh              # Production Nginx reverse-proxy deployment script
+│   └── generate_assets.py          # Programmatic visual asset generation script
 ├── static/
 │   ├── audio/
 │   │   └── .gitkeep                # Audio storage directory (MP3 files gitignored)
