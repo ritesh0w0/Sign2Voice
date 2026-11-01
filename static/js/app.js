@@ -206,7 +206,7 @@ async function captureAndProcessFrame() {
     formData.append("image", blob, "frame.jpg");
     formData.append("target_language", state.selectedLanguage);
 
-    const response = await fetch("/process_frame", {
+    const response = await fetch("process_frame", {
       method: "POST",
       body: formData
     });
@@ -394,7 +394,7 @@ async function synthesizeSentence() {
   }
 
   try {
-    const response = await fetch("/process_sentence", {
+    const response = await fetch("process_sentence", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -424,7 +424,9 @@ async function synthesizeSentence() {
 // Audio Player & Visualizer
 function playAudio(url) {
   if (!url) return;
-  audioPlayer.src = url;
+  // Handle relative vs absolute audio URLs cleanly across reverse proxy subpaths
+  const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
+  audioPlayer.src = cleanUrl;
   audioPlayer.play().catch((err) => {
     console.warn("Audio autoplay blocked by browser policy:", err);
   });
@@ -468,7 +470,7 @@ function updateStatus(text) {
 
 async function loadSupportedData() {
   try {
-    const res = await fetch("/api/supported");
+    const res = await fetch("api/supported");
     if (!res.ok) return;
     const data = await res.json();
 
@@ -490,3 +492,4 @@ async function loadSupportedData() {
     console.warn("Could not load supported info:", err);
   }
 }
+

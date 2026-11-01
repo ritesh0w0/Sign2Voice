@@ -138,3 +138,4 @@ Synthesizes multiple tokens into a natural sentence, applies grammar heuristics,
 - Generated neural audio files are persisted under `static/audio/`.
 - Pre-warmed audio cache eliminates latency on recurrent phrases.
 - Least-recently-used audio pruning maintains disk utilization under 150 files.
+

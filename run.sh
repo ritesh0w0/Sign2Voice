@@ -38,3 +38,4 @@ echo "Press Ctrl+C to terminate."
 echo ""
 
 python3 main.py
+
