@@ -1,7 +1,12 @@
 /**
  * Sign2Voice - Frontend Client Controller
- * Handles live webcam streaming, canvas landmark rendering, real-time API pipeline,
- * Edge-TTS audio playback, and sentence synthesis.
+ * 
+ * Hands-Free Automatic Pipeline:
+ * 1. Automatically appends words as you sign and hold gestures (~0.8s stability).
+ * 2. Words are NOT spoken individually (prevents repetitive stutter).
+ * 3. Waits for the user to finish all gestures.
+ * 4. When hands lower/pause (~1.2s), it automatically formulates, translates,
+ *    and speaks the complete final sentence via Edge-TTS!
  */
 
 // State Management
@@ -12,11 +17,20 @@ const state = {
   timerId: null,
   isProcessing: false,
   selectedLanguage: "English",
+
+  // Automatic Gesture Appending Engine
   tokens: [],
-  autoSpeak: true,
-  lastSpokenText: "",
-  audioCooldown: false,
-  currentAudioUrl: ""
+  candidateSign: null,
+  candidateStreak: 0,
+  REQUIRED_STREAK: 4, // 4 consecutive frames (~0.8s) to lock in a word
+
+  // Automatic Sentence Completion Trigger
+  noHandFrames: 0,
+  NO_HAND_TRIGGER_FRAMES: 6, // ~1.2s of hand lowered triggers speech
+  isSynthesizingSentence: false,
+
+  // Audio State
+  lastSentenceAudioUrl: ""
 };
 
 // DOM Elements
@@ -28,19 +42,17 @@ const btnStopCam = document.getElementById("btn-stop-cam");
 const btnFlipCam = document.getElementById("btn-flip-cam");
 const fpsSelect = document.getElementById("fps-select");
 const langSelect = document.getElementById("lang-select");
-const btnAddToken = document.getElementById("btn-add-token");
-const btnSynthesize = document.getElementById("btn-synthesize");
 const btnClearTokens = document.getElementById("btn-clear-tokens");
-const btnPlayAudio = document.getElementById("btn-play-audio");
 const btnPlaySentenceAudio = document.getElementById("btn-play-sentence-audio");
 const btnGuide = document.getElementById("btn-guide");
 const btnCloseGuide = document.getElementById("btn-close-guide");
 const modalGuide = document.getElementById("modal-guide");
 const guideGrid = document.getElementById("guide-grid");
+const gestureHoldProgress = document.getElementById("gesture-hold-progress");
+const autoStatusIndicator = document.getElementById("auto-status-indicator");
 
-// Audio Elements
+// Audio Element
 const audioPlayer = new Audio();
-let sentenceAudioUrl = "";
 
 // Initialize App
 document.addEventListener("DOMContentLoaded", () => {
@@ -74,25 +86,11 @@ function setupEventListeners() {
     updateStatus(`Target language set to ${state.selectedLanguage}`);
   });
 
-  btnAddToken?.addEventListener("click", () => {
-    const currentSign = document.getElementById("live-sign-name")?.textContent;
-    if (currentSign && !["No Hand", "Unknown", "Ready"].includes(currentSign)) {
-      addToken(currentSign);
-    }
-  });
-
-  btnSynthesize?.addEventListener("click", synthesizeSentence);
-  btnClearTokens?.addEventListener("click", clearTokens);
-
-  btnPlayAudio?.addEventListener("click", () => {
-    if (state.currentAudioUrl) {
-      playAudio(state.currentAudioUrl);
-    }
-  });
+  btnClearTokens?.addEventListener("click", resetSentenceBuffer);
 
   btnPlaySentenceAudio?.addEventListener("click", () => {
-    if (sentenceAudioUrl) {
-      playAudio(sentenceAudioUrl);
+    if (state.lastSentenceAudioUrl) {
+      playAudio(state.lastSentenceAudioUrl);
     }
   });
 
@@ -110,13 +108,13 @@ function setupEventListeners() {
     }
   });
 
-  // Audio Playback Events
+  // Audio Visualizer Hooks
   audioPlayer.addEventListener("play", () => setAudioVisualizer(true));
   audioPlayer.addEventListener("ended", () => setAudioVisualizer(false));
   audioPlayer.addEventListener("error", () => setAudioVisualizer(false));
 }
 
-// Media & Camera Pipeline
+// Camera Pipeline
 let currentFacingMode = "user";
 
 async function startCamera() {
@@ -136,7 +134,7 @@ async function startCamera() {
 
     state.streaming = true;
     resizeCanvas();
-    updateStatus("Camera Active ● Scanning");
+    updateStatus("Camera Active ● Signing Mode");
 
     btnStartCam.style.display = "none";
     btnStopCam.style.display = "inline-flex";
@@ -182,26 +180,25 @@ function restartLoop() {
   state.timerId = setInterval(captureAndProcessFrame, intervalMs);
 }
 
-// Frame Capture & API Invocation
+// Frame Capture Loop
 async function captureAndProcessFrame() {
-  if (!state.streaming || state.isProcessing || !webcam.videoWidth) return;
+  if (!state.streaming || state.isProcessing || !webcam.videoWidth || state.isSynthesizingSentence) {
+    return;
+  }
 
   state.isProcessing = true;
   const startTime = performance.now();
 
   try {
-    // Render frame to offscreen canvas
     const offscreen = document.createElement("canvas");
     offscreen.width = webcam.videoWidth;
     offscreen.height = webcam.videoHeight;
     const offCtx = offscreen.getContext("2d");
     offCtx.drawImage(webcam, 0, 0, offscreen.width, offscreen.height);
 
-    // Convert to Blob
     const blob = await new Promise((resolve) => offscreen.toBlob(resolve, "image/jpeg", 0.75));
     if (!blob) return;
 
-    // Build FormData
     const formData = new FormData();
     formData.append("image", blob, "frame.jpg");
     formData.append("target_language", state.selectedLanguage);
@@ -215,7 +212,7 @@ async function captureAndProcessFrame() {
     const data = await response.json();
 
     const latency = Math.round(performance.now() - startTime);
-    renderResults(data, latency);
+    handleFrameData(data, latency);
   } catch (err) {
     console.warn("Frame processing glitch:", err);
   } finally {
@@ -223,29 +220,31 @@ async function captureAndProcessFrame() {
   }
 }
 
-// Render Results & Overlay
-function renderResults(data, latencyMs) {
-  const { sign_text, translated_text, audio_url, debug_info } = data;
+// Process Frame Recognition & Automatic Sentence Engine
+function handleFrameData(data, latencyMs) {
+  const { sign_text, translated_text, debug_info } = data;
 
-  // Latency telemetry
+  // Latency & Telemetry
   const elLatency = document.getElementById("telemetry-latency");
   if (elLatency) elLatency.textContent = `${latencyMs}ms`;
 
-  // Draw Landmarks if present
+  // Draw 21 MediaPipe Landmarks
   if (debug_info && debug_info.landmarks && debug_info.landmarks.length > 0) {
     drawHandLandmarks(debug_info.landmarks);
   } else {
     clearCanvas();
   }
 
-  // Update Gesture Text & Emoji
+  // Update Live Sign Preview
   const elSign = document.getElementById("live-sign-name");
   const elIcon = document.getElementById("live-sign-icon");
   const elDebug = document.getElementById("live-debug-info");
+  const elTrans = document.getElementById("live-translated-text");
 
-  if (elSign) elSign.textContent = sign_text || "Ready";
+  if (elSign) elSign.textContent = sign_text || "Scanning...";
   if (elIcon) elIcon.textContent = getSignEmoji(sign_text);
   if (elDebug) elDebug.textContent = (debug_info && debug_info.text) || "Detecting...";
+  if (elTrans) elTrans.textContent = translated_text || "...";
 
   // Telemetry: Fingers & Motion
   if (debug_info) {
@@ -260,36 +259,165 @@ function renderResults(data, latencyMs) {
     }
   }
 
-  // Translated output
-  const elTrans = document.getElementById("live-translated-text");
-  if (elTrans) {
-    elTrans.textContent = translated_text || "...";
-  }
+  // --- AUTOMATIC APPEND & AUTO-SPEECH ENGINE ---
+  const isValidSign = sign_text && !["No Hand Detected", "Unknown Sign", "Ready"].includes(sign_text) && !sign_text.startsWith("Error");
 
-  // Play Audio if new and valid
-  if (
-    audio_url &&
-    sign_text &&
-    !["No Hand Detected", "Unknown Sign"].includes(sign_text) &&
-    state.autoSpeak &&
-    sign_text !== state.lastSpokenText &&
-    !state.audioCooldown
-  ) {
-    state.lastSpokenText = sign_text;
-    state.currentAudioUrl = audio_url;
-    playAudio(audio_url);
+  if (isValidSign) {
+    state.noHandFrames = 0; // Hand is active
 
-    // Audio cooldown (prevents rapid repetitive firing)
-    state.audioCooldown = true;
-    setTimeout(() => {
-      state.audioCooldown = false;
-    }, 1800);
-  } else if (audio_url) {
-    state.currentAudioUrl = audio_url;
+    if (sign_text === state.candidateSign) {
+      state.candidateStreak++;
+      if (gestureHoldProgress) {
+        gestureHoldProgress.textContent = `Locking: ${state.candidateStreak}/${state.REQUIRED_STREAK}`;
+        gestureHoldProgress.style.color = "#06b6d4";
+      }
+
+      // Automatically append gesture once held steadily
+      if (state.candidateStreak === state.REQUIRED_STREAK) {
+        // Prevent appending the exact same sign consecutively
+        const lastToken = state.tokens[state.tokens.length - 1];
+        if (lastToken !== sign_text) {
+          state.tokens.push(sign_text);
+          renderTokens();
+
+          if (autoStatusIndicator) {
+            autoStatusIndicator.textContent = `● APPENDED "${sign_text.toUpperCase()}"`;
+            autoStatusIndicator.style.color = "#8b5cf6";
+          }
+        }
+      }
+    } else {
+      state.candidateSign = sign_text;
+      state.candidateStreak = 1;
+      if (gestureHoldProgress) {
+        gestureHoldProgress.textContent = `Hold ~1s to append`;
+        gestureHoldProgress.style.color = "var(--text-dim)";
+      }
+    }
+  } else {
+    // Hand is absent or transition
+    state.candidateSign = null;
+    state.candidateStreak = 0;
+    if (gestureHoldProgress) {
+      gestureHoldProgress.textContent = `Waiting for sign...`;
+      gestureHoldProgress.style.color = "var(--text-dim)";
+    }
+
+    if (sign_text === "No Hand Detected") {
+      state.noHandFrames++;
+
+      // User finished signing and lowered hands -> Automatically speak full sentence!
+      if (
+        state.noHandFrames >= state.NO_HAND_TRIGGER_FRAMES &&
+        state.tokens.length > 0 &&
+        !state.isSynthesizingSentence
+      ) {
+        autoSpeakFinalSentence();
+      }
+    }
   }
 }
 
-// Landmark Drawing Routine
+// Automatically Synthesize & Speak Full Sentence
+async function autoSpeakFinalSentence() {
+  if (state.tokens.length === 0 || state.isSynthesizingSentence) return;
+
+  state.isSynthesizingSentence = true;
+  const sentenceTokens = [...state.tokens]; // copy tokens
+
+  if (autoStatusIndicator) {
+    autoStatusIndicator.textContent = "● SPEAKING FULL SENTENCE...";
+    autoStatusIndicator.style.color = "#ec4899";
+  }
+
+  try {
+    const response = await fetch("process_sentence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokens: sentenceTokens,
+        target_language: state.selectedLanguage
+      })
+    });
+
+    if (!response.ok) throw new Error("Sentence synthesis failed.");
+    const data = await response.json();
+
+    const elOriginal = document.getElementById("sentence-original-text");
+    const elTrans = document.getElementById("sentence-translated-text");
+
+    if (elOriginal) elOriginal.textContent = `"${data.original}"`;
+    if (elTrans) elTrans.textContent = data.translated;
+
+    // Automatically speak the final sentence audio
+    if (data.audio_url) {
+      state.lastSentenceAudioUrl = data.audio_url;
+      playAudio(data.audio_url);
+    }
+
+    // Clear tokens for the next sentence after speaking
+    state.tokens = [];
+    renderTokens();
+
+    setTimeout(() => {
+      state.isSynthesizingSentence = false;
+      state.noHandFrames = 0;
+      if (autoStatusIndicator) {
+        autoStatusIndicator.textContent = "● AUTO-FLOW READY";
+        autoStatusIndicator.style.color = "var(--accent-emerald)";
+      }
+    }, 2000);
+
+  } catch (err) {
+    console.error("Auto sentence error:", err);
+    state.isSynthesizingSentence = false;
+  }
+}
+
+function resetSentenceBuffer() {
+  state.tokens = [];
+  state.candidateStreak = 0;
+  state.noHandFrames = 0;
+  renderTokens();
+
+  const elOriginal = document.getElementById("sentence-original-text");
+  const elTrans = document.getElementById("sentence-translated-text");
+  if (elOriginal) elOriginal.textContent = "Tokens cleared. Start signing gestures in sequence.";
+  if (elTrans) elTrans.textContent = "...";
+
+  if (autoStatusIndicator) {
+    autoStatusIndicator.textContent = "● BUFFER RESET";
+    autoStatusIndicator.style.color = "var(--accent-cyan)";
+  }
+}
+
+function renderTokens() {
+  const container = document.getElementById("token-container");
+  if (!container) return;
+
+  if (state.tokens.length === 0) {
+    container.innerHTML = '<span class="token-placeholder">Perform gestures steadily to automatically add words here...</span>';
+    return;
+  }
+
+  container.innerHTML = "";
+  state.tokens.forEach((token, idx) => {
+    const chip = document.createElement("div");
+    chip.className = "token-chip";
+    chip.innerHTML = `
+      <span>${token}</span>
+      <span class="token-chip-remove" onclick="removeToken(${idx})">✕</span>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+function removeToken(index) {
+  state.tokens.splice(index, 1);
+  renderTokens();
+}
+
+// MediaPipe Landmark Rendering
 const HAND_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
   [0, 5], [5, 6], [6, 7], [7, 8],       // Index
@@ -306,9 +434,8 @@ function drawHandLandmarks(landmarks) {
   const w = canvas.width;
   const h = canvas.height;
 
-  // Draw connections
   ctx.lineWidth = 2.5;
-  ctx.strokeStyle = "rgba(6, 182, 212, 0.85)"; // Neon Cyan
+  ctx.strokeStyle = "rgba(6, 182, 212, 0.85)";
   ctx.shadowColor = "#06b6d4";
   ctx.shadowBlur = 8;
 
@@ -323,7 +450,6 @@ function drawHandLandmarks(landmarks) {
     }
   }
 
-  // Draw joints
   ctx.shadowBlur = 10;
   for (let i = 0; i < landmarks.length; i++) {
     const pt = landmarks[i];
@@ -332,7 +458,7 @@ function drawHandLandmarks(landmarks) {
 
     ctx.beginPath();
     ctx.arc(x, y, i === 4 || i === 8 || i === 12 || i === 16 || i === 20 ? 5 : 3.5, 0, 2 * Math.PI);
-    ctx.fillStyle = i % 4 === 0 ? "#ec4899" : "#a855f7"; // Neon Pink/Purple joints
+    ctx.fillStyle = i % 4 === 0 ? "#ec4899" : "#a855f7";
     ctx.shadowColor = "#ec4899";
     ctx.fill();
   }
@@ -344,87 +470,9 @@ function clearCanvas() {
   }
 }
 
-// Token & Sentence Builder
-function addToken(sign) {
-  if (!sign || ["No Hand Detected", "Unknown Sign", "Ready"].includes(sign)) return;
-  state.tokens.push(sign);
-  renderTokens();
-}
-
-function removeToken(index) {
-  state.tokens.splice(index, 1);
-  renderTokens();
-}
-
-function clearTokens() {
-  state.tokens = [];
-  renderTokens();
-  const elOriginal = document.getElementById("sentence-original-text");
-  const elTrans = document.getElementById("sentence-translated-text");
-  if (elOriginal) elOriginal.textContent = "Tokens cleared.";
-  if (elTrans) elTrans.textContent = "...";
-  sentenceAudioUrl = "";
-}
-
-function renderTokens() {
-  const container = document.getElementById("token-container");
-  if (!container) return;
-
-  if (state.tokens.length === 0) {
-    container.innerHTML = '<span class="token-placeholder">Detected tokens will appear here (e.g. Hello, Yes)...</span>';
-    return;
-  }
-
-  container.innerHTML = "";
-  state.tokens.forEach((token, idx) => {
-    const chip = document.createElement("div");
-    chip.className = "token-chip";
-    chip.innerHTML = `
-      <span>${token}</span>
-      <span class="token-chip-remove" onclick="removeToken(${idx})">✕</span>
-    `;
-    container.appendChild(chip);
-  });
-}
-
-async function synthesizeSentence() {
-  if (state.tokens.length === 0) {
-    alert("Please add at least one sign token to form a sentence.");
-    return;
-  }
-
-  try {
-    const response = await fetch("process_sentence", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tokens: state.tokens,
-        target_language: state.selectedLanguage
-      })
-    });
-
-    if (!response.ok) throw new Error("Sentence generation failed.");
-    const data = await response.json();
-
-    const elOriginal = document.getElementById("sentence-original-text");
-    const elTrans = document.getElementById("sentence-translated-text");
-
-    if (elOriginal) elOriginal.textContent = `"${data.original}"`;
-    if (elTrans) elTrans.textContent = data.translated;
-
-    if (data.audio_url) {
-      sentenceAudioUrl = data.audio_url;
-      playAudio(data.audio_url);
-    }
-  } catch (err) {
-    console.error("Sentence synthesis error:", err);
-  }
-}
-
 // Audio Player & Visualizer
 function playAudio(url) {
   if (!url) return;
-  // Handle relative vs absolute audio URLs cleanly across reverse proxy subpaths
   const cleanUrl = url.startsWith("/") ? url.slice(1) : url;
   audioPlayer.src = cleanUrl;
   audioPlayer.play().catch((err) => {
@@ -443,20 +491,23 @@ function setAudioVisualizer(isPlaying) {
   });
 }
 
-// Helpers
+// Gesture Emojis
 function getSignEmoji(sign) {
   const map = {
     Hello: "👋",
     Yes: "👍",
     No: "👎",
-    Victory: "✌️",
     "2": "✌️",
+    Victory: "✌️",
     "1": "☝️",
     "3": "🤟",
     "4": "🖖",
     "5": "✋",
     "I Love You": "🤟",
     Help: "🤙",
+    OK: "👌",
+    Rock: "🤘",
+    Fist: "✊",
     L: "🇱",
     Y: "🇾"
   };
@@ -474,7 +525,6 @@ async function loadSupportedData() {
     if (!res.ok) return;
     const data = await res.json();
 
-    // Populate Guide
     if (guideGrid && data.signs) {
       guideGrid.innerHTML = data.signs
         .map(
@@ -492,4 +542,3 @@ async function loadSupportedData() {
     console.warn("Could not load supported info:", err);
   }
 }
-

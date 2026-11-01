@@ -28,7 +28,7 @@ class SignRecognizer:
             print(f"[CRITICAL] MediaPipe Initialization Error: {e}")
             self.hands = None
 
-        # Stability history buffer (temporal smoothing to avoid flickering)
+        # Stability history buffer (temporal smoothing)
         self.history = []
         self.history_size = 3
 
@@ -102,7 +102,6 @@ class SignRecognizer:
         # Extract normalized 2D landmarks for frontend overlay
         landmarks_data = [{"x": round(p.x, 3), "y": round(p.y, 3)} for p in lm]
 
-        # Motion calculation (wrist Y velocity)
         wrist = lm[0]
         self.motion_score = self._calculate_motion(wrist.y)
 
@@ -153,9 +152,14 @@ class SignRecognizer:
             "landmarks": landmarks_data
         }
 
-        # --- Pattern Matching Matrix ---
+        # --- Comprehensive Pattern Matching Matrix ---
 
-        # Hello / 4 / 5: 4 fingers extended
+        # 1. OK Sign: Thumb tip near Index tip, other 3 fingers open
+        dist_thumb_index_tips = get_dist(thumb_tip, lm[8])
+        if dist_thumb_index_tips < (palm_scale * 0.30) and fingers_4[1:] == [1, 1, 1]:
+            return "OK", debug_info
+
+        # 2. Hello / 4 / 5: 4 fingers extended
         if fingers_4 == [1, 1, 1, 1]:
             # Priority: '4' (Thumb Tucked)
             if is_thumb_tucked or not is_thumb_extended:
@@ -169,36 +173,44 @@ class SignRecognizer:
                 debug_info["text"] += " (Wave)"
                 return "Hello", debug_info
 
-        # Yes: Fist + Thumbs Up
+        # 3. Yes: Fist + Thumbs Up
         if fingers_4 == [0, 0, 0, 0] and thumb_is_up:
             return "Yes", debug_info
 
-        # No: Fist + Thumbs Down
+        # 4. No: Fist + Thumbs Down
         if fingers_4 == [0, 0, 0, 0] and thumb_is_down:
             return "No", debug_info
 
-        # 2 / Victory: Index & Middle Extended
+        # 5. 2 / Victory: Index & Middle Extended
         if fingers_4 == [1, 1, 0, 0]:
-            return "Victory", debug_info
+            return "2", debug_info
 
-        # I Love You: Thumb + Index + Pinky Open
+        # 6. I Love You: Thumb + Index + Pinky Open (ASL ILY)
         if fingers_4 == [1, 0, 0, 1] and thumb_is_up:
             return "I Love You", debug_info
 
-        # Help: Thumb + Pinky Open (Shaka / Emergency)
+        # 7. Help / Call Me: Thumb + Pinky Open
         if fingers_4 == [0, 0, 0, 1] and thumb_is_up:
             return "Help", debug_info
 
-        # Numbers
+        # 8. Rock / Horns: Index and Pinky Open, Middle and Ring Folded
+        if fingers_4 == [1, 0, 0, 1] and not thumb_is_up:
+            return "Rock", debug_info
+
+        # 9. Numbers
         if fingers_4 == [1, 0, 0, 0] and not thumb_is_up:
             return "1", debug_info
         if fingers_4 == [1, 1, 1, 0]:
             return "3", debug_info
 
-        # ASL Letters
+        # 10. ASL Letters
         if fingers_4 == [1, 0, 0, 0] and thumb_is_up:
             return "L", debug_info
         if fingers_4 == [0, 0, 0, 1] and thumb_is_up:
             return "Y", debug_info
+
+        # 11. Fist / Stop / 0
+        if fingers_4 == [0, 0, 0, 0] and not thumb_is_up and not thumb_is_down:
+            return "Fist", debug_info
 
         return "Unknown Sign", debug_info

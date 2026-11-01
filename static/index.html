@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign2Voice - AI Sign Language to Multilingual Voice System</title>
-  <meta name="description" content="Real-time Sign Language detection, sentence translation, and Edge-TTS neural voice synthesis in English, Hindi, Kannada, Tamil, and Telugu.">
+  <meta name="description" content="Real-time Sign Language detection, automatic sentence formulation, and Edge-TTS neural voice synthesis in English, Hindi, Kannada, Tamil, and Telugu.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤟</text></svg>">
   <link rel="stylesheet" href="static/css/style.css">
 </head>
@@ -35,11 +35,6 @@
         <span>📖</span>
         <span>Gesture Guide</span>
       </button>
-
-      <a href="/docs" target="_blank" class="header-btn" title="Open API Documentation" style="text-decoration: none;">
-        <span>⚡</span>
-        <span>API Docs</span>
-      </a>
     </div>
   </header>
 
@@ -111,25 +106,26 @@
           </button>
         </div>
 
-        <button id="btn-add-token" class="btn-secondary" title="Manually push current gesture into sentence builder">
-          <span>➕</span>
-          <span>Add to Sentence</span>
-        </button>
+        <!-- Auto-Mode Banner -->
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent-cyan);">
+          <span class="pulse-dot"></span>
+          <span>Auto-Appends Words ● Lower hand to speak sentence</span>
+        </div>
       </div>
     </section>
 
-    <!-- Right Column: Multilingual Translation & Sentence Studio -->
+    <!-- Right Column: Multilingual Translation & Automatic Sentence Engine -->
     <div class="side-column">
 
-      <!-- Real-Time Sign Translation Card -->
+      <!-- Target Language Selector Card -->
       <section class="glass-panel section-card">
         <div class="card-header-row">
           <div class="card-title">
             <span>🌐</span>
-            <span>Instant Translation & Voice</span>
+            <span>Speech Output Language</span>
           </div>
           <div class="lang-select-wrapper">
-            <label for="lang-select" style="font-size: 12px; color: var(--text-muted);">Target:</label>
+            <label for="lang-select" style="font-size: 12px; color: var(--text-muted);">Voice Locale:</label>
             <select id="lang-select" class="lang-select">
               <option value="English" selected>English</option>
               <option value="Hindi">हिंदी (Hindi)</option>
@@ -140,66 +136,59 @@
           </div>
         </div>
 
-        <!-- Output Box -->
-        <div class="translation-box">
-          <div class="translation-label">Translated Speech Result</div>
-          <div id="live-translated-text" class="translation-result">...</div>
-        </div>
-
-        <div class="action-row">
-          <div class="audio-player-bar">
-            <button id="btn-play-audio" class="audio-btn" title="Replay Audio">
-              <span>🔊</span>
-            </button>
-            <div class="audio-bars">
-              <div class="audio-bar"></div>
-              <div class="audio-bar"></div>
-              <div class="audio-bar"></div>
-              <div class="audio-bar"></div>
-              <div class="audio-bar"></div>
-            </div>
-            <span style="font-size: 12px; color: var(--text-muted);">Edge-TTS Neural Voice</span>
+        <!-- Live Recognition Status Banner -->
+        <div class="translation-box" style="min-height: 70px;">
+          <div class="translation-label">Active Sign Preview (Not Spoken Aloud)</div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div id="live-translated-text" class="translation-result" style="font-size: 20px;">Waiting for sign...</div>
+            <div id="gesture-hold-progress" style="font-size: 12px; color: var(--text-dim); font-family: monospace;">Hold ~1s to append</div>
           </div>
-
-          <span style="font-size: 12px; color: var(--text-dim);">Auto-Speak Enabled</span>
         </div>
       </section>
 
-      <!-- Smart Sentence Construction Studio -->
+      <!-- Automatic Sentence Construction Stream -->
       <section class="glass-panel section-card">
         <div class="card-header-row">
           <div class="card-title">
             <span>🧩</span>
-            <span>Sentence Construction Studio</span>
+            <span>Live Sentence Formulation</span>
           </div>
-          <button id="btn-clear-tokens" class="header-btn" style="padding: 4px 10px; font-size: 12px;">
-            <span>🗑</span>
-            <span>Clear</span>
-          </button>
-        </div>
-
-        <!-- Token Accumulation Stream -->
-        <div id="token-container" class="token-stream-box">
-          <span class="token-placeholder">Detected sign tokens will collect here (e.g., Hello, Yes)...</span>
-        </div>
-
-        <div class="sentence-controls">
-          <button id="btn-synthesize" class="btn-synthesize">
-            <span>✨</span>
-            <span>Synthesize & Speak Full Sentence</span>
-          </button>
-        </div>
-
-        <!-- Formulated Sentence Card -->
-        <div class="sentence-result-box">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="translation-label">NLP Synthesized Formulation</div>
-            <button id="btn-play-sentence-audio" class="header-btn" style="padding: 2px 8px; font-size: 11px;">
-              <span>🔊 Replay</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="auto-status-indicator" style="font-size: 11px; color: var(--accent-emerald); font-weight: 600;">● AUTO-FLOW</span>
+            <button id="btn-clear-tokens" class="header-btn" style="padding: 4px 10px; font-size: 12px;" title="Reset Sentence">
+              <span>🗑 Reset</span>
             </button>
           </div>
-          <div id="sentence-original-text" class="sentence-original">"Hello! Everything looks good."</div>
-          <div id="sentence-translated-text" class="sentence-translated">...</div>
+        </div>
+
+        <!-- Token Accumulation Stream (Auto-Appended) -->
+        <div id="token-container" class="token-stream-box">
+          <span class="token-placeholder">Perform gestures steadily to automatically add words here...</span>
+        </div>
+
+        <!-- Formulated Final Sentence Card (Auto-Spoken upon pause/hand lowered) -->
+        <div class="sentence-result-box" style="border: 1px solid rgba(99, 102, 241, 0.3);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="translation-label" id="sentence-status-label">Final Synthesized Sentence (Auto-Spoken)</div>
+            <div class="audio-player-bar">
+              <button id="btn-play-sentence-audio" class="audio-btn" style="width: 32px; height: 32px; font-size: 13px;" title="Replay Sentence">
+                <span>🔊</span>
+              </button>
+              <div class="audio-bars">
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+              </div>
+            </div>
+          </div>
+          <div id="sentence-original-text" class="sentence-original" style="font-style: italic;">
+            "Sign gestures in sequence, then lower your hand. The system will speak the complete sentence."
+          </div>
+          <div id="sentence-translated-text" class="sentence-translated" style="font-size: 22px; color: var(--accent-pink);">
+            ...
+          </div>
         </div>
       </section>
 
@@ -241,7 +230,7 @@
       </div>
 
       <div id="guide-grid" class="gesture-guide-grid">
-        <!-- Dynamically populated or static cards -->
+        <!-- Dynamically populated -->
       </div>
     </div>
   </div>
@@ -249,4 +238,3 @@
   <script src="static/js/app.js"></script>
 </body>
 </html>
-

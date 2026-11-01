@@ -1,5 +1,9 @@
 import sys
 import io
+import os
+
+# Set root directory in sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Force UTF-8 output encoding for Windows command line
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -21,6 +25,7 @@ def test_endpoints():
     res = client.get("/api/supported")
     print("Supported response:", res.status_code, "Signs count:", len(res.json()["signs"]))
     assert res.status_code == 200
+    assert len(res.json()["signs"]) >= 13
 
     print("\nTesting /process_sentence...")
     res = client.post("/process_sentence", json={
@@ -40,7 +45,6 @@ def test_endpoints():
     files = {"image": ("test.jpg", encoded.tobytes(), "image/jpeg")}
     data = {"target_language": "English"}
 
-    # Send 3 frames to stabilize buffer
     for i in range(3):
         files = {"image": ("test.jpg", encoded.tobytes(), "image/jpeg")}
         res = client.post("/process_frame", files=files, data=data)

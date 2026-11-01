@@ -20,6 +20,12 @@ os.makedirs(os.path.join("static", "audio"), exist_ok=True)
 
 # Curated Natural Demo Overrides for multi-lingual fluency
 SENTENCE_TRANSLATIONS = {
+    "Hello, whats up": {
+        "Kannada": "ನಮಸ್ಕಾರ, ಏನ ಸಮಾಚಾರ?",
+        "Hindi": "नमस्ते, क्या हाल है?",
+        "Tamil": "வணக்கம், என்ன விஷயம்?",
+        "Telugu": "హలో, ఎలా ఉన్నారు?"
+    },
     "Hello! Everything looks good.": {
         "Kannada": "ನಮಸ್ಕಾರ! ಎಲ್ಲವೂ ಸರಿಯಾಗಿದೆ.",
         "Hindi": "नमस्ते! सब कुछ ठीक है.",
@@ -38,23 +44,35 @@ SENTENCE_TRANSLATIONS = {
         "Tamil": "வணக்கம்! நாம் வெற்றியை அடைந்துள்ளோம்.",
         "Telugu": "నమస్కారం! మనం విజయం సాధించాం."
     },
-    "I truly appreciate and love you.": {
-        "Kannada": "ನಾನು ನಿಮ್ಮನ್ನು ನಿಜವಾಗಿಯೂ ಪ್ರೀತಿಸುತ್ತೇನೆ ಮತ್ತು ಗೌರವಿಸುತ್ತೇನೆ.",
-        "Hindi": "मैं वास्तव में आपकी सराहना और आपसे प्यार करता हूँ.",
-        "Tamil": "நான் உங்களை உண்மையிலேயே நேசிக்கிறேன்.",
-        "Telugu": "నేను నిన్ను నిజంగా ప్రేమిస్తున్నాను."
+    "I truly appreciate you.": {
+        "Kannada": "ನಾನು ನಿಮ್ಮನ್ನು ನಿಜವಾಗಿಯೂ ಮೆಚ್ಚುತ್ತೇನೆ.",
+        "Hindi": "मैं वास्तव में आपकी प्रशंसा करता हूं.",
+        "Tamil": "நான் உங்களை உண்மையிலேயே பாராட்டுகிறேன்.",
+        "Telugu": "నేను నిన్ను నిజంగా అభినందిస్తున్నాను."
     },
-    "Hello! How can I assist you?": {
-        "Kannada": "ನಮಸ್ಕಾರ, ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
-        "Hindi": "नमस्ते, मैं आपकी क्या मदद कर सकता हूँ?",
-        "Tamil": "வணக்கம், நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?",
-        "Telugu": "నమస్కారం, నేను మీకు ఎలా సహాయం చేయగలను?"
+    "Yes! We are the champions.": {
+        "Kannada": "ಹೌದು! ನಾವು ಚಾಂಪಿಯನ್ಸ್.",
+        "Hindi": "हाँ! हम विजेता हैं.",
+        "Tamil": "ஆம்! நாம் சாம்பியன்கள்.",
+        "Telugu": "అవును! మనం విజేతలం."
     },
-    "I need help right away, please assist me.": {
-        "Kannada": "ನನಗೆ ತಕ್ಷಣ ಸಹಾಯ ಬೇಕಾಗಿದೆ, ದಯವಿಟ್ಟು ಸಹಾಯ ಮಾಡಿ.",
-        "Hindi": "मुझे तुरंत मदद की ज़रूरत है, कृपया सहायता करें.",
-        "Tamil": "எனக்கு உடனடியாக உதவி தேவை, தயவுசெய்து உதவுங்கள்.",
-        "Telugu": "నాకు వెంటనే సహాయం కావాలి, దయచేసి సహాయం చేయండి."
+    "I am in trouble, please help me immediately.": {
+        "Kannada": "ನಾನು ಕಷ್ಟದಲ್ಲಿದ್ದೇನೆ, ದಯವಿಟ್ಟು ತಕ್ಷಣ ಸಹಾಯ ಮಾಡಿ.",
+        "Hindi": "मैं मुसीबत में हूँ, कृपया तुरंत मेरी मदद करें.",
+        "Tamil": "நான் சிக்கலில் உள்ளேன், தயவுசெய்து உடனடியாக உதவுங்கள்.",
+        "Telugu": "నేను సమస్యలో ఉన్నాను, దయచేసి వెంటనే సహాయం చేయండి."
+    },
+    "Yes, I need some assistance please.": {
+        "Kannada": "ಹೌದು, ನನಗೆ ದಯವಿಟ್ಟು ಸ್ವಲ್ಪ ಸಹಾಯ ಬೇಕು.",
+        "Hindi": "हाँ, मुझे कृपया कुछ सहायता चाहिए.",
+        "Tamil": "ஆம், எனக்கு தயவுசெய்து உதவி தேவை.",
+        "Telugu": "అవును, నాకు దయచేసి కాస్త సహాయం కావాలి."
+    },
+    "Please help me!": {
+        "Kannada": "ದಯವಿಟ್ಟು ನನಗೆ ಸಹಾಯ ಮಾಡಿ!",
+        "Hindi": "कृपया मेरी मदद करें!",
+        "Tamil": "தயவுசெய்து எனக்கு உதவுங்கள்!",
+        "Telugu": "దయచేసి నాకు సహాయం చేయండి!"
     }
 }
 
@@ -64,16 +82,16 @@ async def lifespan(app: FastAPI):
     print("=" * 55)
     print("  Sign2Voice Server Starting - Pre-warming Audio Cache...")
     print("=" * 55)
-    prewarm_samples = [
-        ("Hello! How can I assist you?", "English"),
-        ("नमस्ते! सब कुछ ठीक है.", "Hindi"),
-        ("ನಮಸ್ಕಾರ! ಎಲ್ಲವೂ ಸರಿಯಾಗಿದೆ.", "Kannada")
-    ]
-    for text, lang in prewarm_samples:
-        try:
-            await generate_audio(text, lang)
-        except Exception as e:
-            print(f"[Warmup Ignored] {e}")
+    langs = ["Kannada", "Hindi", "Telugu", "Tamil", "English"]
+    for lang in langs:
+        txt = SENTENCE_TRANSLATIONS.get("Hello, whats up", {}).get(lang, "")
+        if not txt and lang == "English":
+            txt = "Hello, whats up"
+        if txt:
+            try:
+                await generate_audio(txt, lang)
+            except Exception as e:
+                pass
     print("[Sign2Voice] Cache Warmup Complete. Service is ready!")
     yield
     print("[Sign2Voice] Server shutting down cleanly.")
@@ -133,22 +151,24 @@ async def health_check():
 
 @app.get("/api/supported")
 async def get_supported_info():
-    """Returns available target languages and gesture vocabulary."""
+    """Returns available target languages and complete gesture vocabulary."""
     return {
         "languages": list(LANG_CODE_MAP.keys()),
         "signs": [
             {"sign": "Hello", "description": "Open hand with slight waving motion", "icon": "👋"},
             {"sign": "Yes", "description": "Fist with thumb pointed upwards", "icon": "👍"},
             {"sign": "No", "description": "Fist with thumb pointed downwards", "icon": "👎"},
-            {"sign": "Victory", "description": "V-sign with index and middle fingers", "icon": "✌️"},
+            {"sign": "2", "description": "Index and middle fingers extended (Victory / Peace)", "icon": "✌️"},
             {"sign": "I Love You", "description": "Thumb, index finger, and pinky extended (ASL ILY)", "icon": "🤟"},
-            {"sign": "Help", "description": "Fist with thumb and pinky extended (Emergency)", "icon": "🤙"},
+            {"sign": "Help", "description": "Thumb and pinky extended (Emergency / Call me)", "icon": "🤙"},
+            {"sign": "OK", "description": "Thumb and index tips touching in circle, 3 fingers open", "icon": "👌"},
+            {"sign": "Rock", "description": "Index and pinky open, middle and ring folded (Horns)", "icon": "🤘"},
+            {"sign": "Fist", "description": "All fingers closed into a fist (Stop / Strength)", "icon": "✊"},
             {"sign": "1", "description": "Index finger extended upwards", "icon": "☝️"},
-            {"sign": "2", "description": "Index and middle fingers extended", "icon": "✌️"},
             {"sign": "3", "description": "Index, middle, and ring fingers extended", "icon": "🤟"},
-            {"sign": "4", "description": "Four fingers open with thumb tucked", "icon": "🖖"},
+            {"sign": "4", "description": "Four fingers open with thumb tucked into palm", "icon": "🖖"},
             {"sign": "5", "description": "All five fingers open, static hand", "icon": "✋"},
-            {"sign": "L", "description": "Thumb and index finger forming L shape", "icon": "🇱"},
+            {"sign": "L", "description": "Thumb and index finger forming 90° L shape", "icon": "🇱"},
             {"sign": "Y", "description": "Thumb and pinky finger open (ASL Y)", "icon": "🇾"}
         ]
     }
@@ -160,18 +180,16 @@ async def process_frame(
     target_language: str = Form("English")
 ):
     """
-    Core computer vision pipeline:
-    1. MediaPipe Hand Landmark Detection
-    2. Geometric Gesture Recognition
-    3. Multilingual Translation
-    4. Neural Text-To-Speech Synthesis
+    Core frame recognition:
+    Detects current gesture and returns predicted sign and landmark telemetry.
+    (Individual word audio is omitted so only the full sentence is spoken).
     """
     image_bytes = await image.read()
 
     # 1. Sign Recognition
     sign_text, debug_info = recognizer.detect_sign(image_bytes)
 
-    # 2. Translation & TTS Validation
+    # 2. Translation for UI preview
     is_valid_sign = (
         bool(sign_text)
         and sign_text not in ["No Hand Detected", "Unknown Sign"]
@@ -180,22 +198,13 @@ async def process_frame(
 
     if not is_valid_sign:
         translated_text = "..."
-        audio_url = ""
     else:
-        # Multilingual Translation
         translated_text = translate_text(sign_text, target_language)
-
-        # Neural TTS Synthesis
-        try:
-            audio_url = await generate_audio(translated_text, target_language)
-        except Exception as e:
-            print(f"[TTS Pipeline Warning] {e}")
-            audio_url = ""
 
     return {
         "sign_text": sign_text,
         "translated_text": translated_text,
-        "audio_url": audio_url,
+        "audio_url": "",
         "debug_info": debug_info
     }
 
@@ -203,8 +212,8 @@ async def process_frame(
 @app.post("/process_sentence")
 async def process_sentence(request: SentenceRequest):
     """
-    Sentence builder pipeline:
-    Synthesizes a list of accumulated tokens into fluent speech.
+    Automatic Sentence Synthesizer:
+    Synthesizes accumulated tokens into natural speech and generates Edge-TTS audio.
     """
     natural_text = sentence_engine.construct_sentence(request.tokens)
 
@@ -221,7 +230,7 @@ async def process_sentence(request: SentenceRequest):
     if not translated_text:
         translated_text = translate_text(natural_text, request.target_language)
 
-    # 3. Neural TTS synthesis
+    # 3. Neural TTS synthesis for the final sentence
     audio_url = await generate_audio(translated_text, request.target_language)
 
     return {

@@ -6,7 +6,7 @@
   <a href="https://github.com/ritesh0w0/Sign2Voice/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
-  <img src="https://img.shields.io/badge/MediaPipe-Vision-008080?style=for-the-badge&logo=google&logoColor=white" alt="MediaPipe">
+  <img src="https://img.shields.io/badge/MediaPipe-0.10.14-008080?style=for-the-badge&logo=google&logoColor=white" alt="MediaPipe">
   <img src="https://img.shields.io/badge/Edge--TTS-Neural-FF6F00?style=for-the-badge&logo=microsoft&logoColor=white" alt="Edge-TTS">
   <img src="https://img.shields.io/badge/Inference-Sub--50ms-10B981?style=for-the-badge" alt="Latency">
 </p>
@@ -15,15 +15,17 @@
 
 # 🤟 Sign2Voice
 
-> **Real-Time AI Sign Language to Multilingual Voice Synthesis System**  
-> Bridging communication barriers by transforming hand gestures and sign language into natural, grammatically structured voice speech across 5 languages in real-time.
+> **Real-Time Hands-Free Sign Language to Multilingual Voice Synthesis System**  
+> Bridging communication barriers by transforming hand gestures into natural, grammatically structured voice speech across 5 languages in real-time.
 
-**Sign2Voice** is an end-to-end, high-performance computer vision and neural voice synthesis system. Running fully on standard CPU hardware without demanding discrete GPUs, it captures video from any standard webcam, tracks 21 skeletal hand landmarks via MediaPipe, extracts palm-invariant geometric metrics, accumulates gestures into multi-token sequences, and produces human-like neural speech in **English**, **Hindi (हिंदी)**, **Kannada (ಕನ್ನಡ)**, **Tamil (தமிழ்)**, and **Telugu (తెలుగు)**.
+**Sign2Voice** is an end-to-end computer vision and neural voice synthesis system running fully on CPU hardware without requiring discrete GPUs. It captures video from your webcam, tracks 21 skeletal hand landmarks via MediaPipe, extracts palm-scale invariant geometric metrics, **automatically appends words as you sign**, and **automatically speaks the complete synthesized sentence** once you lower your hand or finish signing in **English**, **Hindi (हिंदी)**, **Kannada (ಕನ್ನಡ)**, **Tamil (தமிழ்)**, and **Telugu (తెలుగు)**.
 
 ---
 
 ## 🌟 Key Highlights
 
+- **🙌 100% Hands-Free Automatic Pipeline**: No manual "Add word" or "Synthesize" buttons needed! The system automatically appends words as you hold gestures, waits for you to finish your sequence, and automatically speaks the complete sentence when you lower your hand.
+- **🔇 Word Silence, Full Sentence Speech**: Individual words are not spoken aloud to prevent stuttering. Only the finalized, natural sentence is spoken.
 - **⚡ Blazing Fast CPU Inference**: Native landmark extraction and geometric classification running at `< 45ms` per frame on standard consumer CPUs.
 - **📐 Palm-Scale Invariant Geometry**: Uses Euclidean joint tip-to-knuckle distance ratios that remain reliable regardless of hand tilt, distance, or camera angle.
 - **🌊 Temporal Motion & Wave Tracking**: Integrates wrist displacement variance over time to accurately distinguish dynamic gestures (like waving **Hello**) from stationary signs (like number **5**).
@@ -44,8 +46,8 @@
 
 The web dashboard features:
 1. **Live Vision Stream Viewport**: Real-time camera feed with custom HUD targeting reticle and glowing MediaPipe landmark skeletal overlay.
-2. **Instant Translation Card**: Real-time gesture identification with target language selector and dynamic audio playback.
-3. **Sentence Construction Studio**: Multi-token accumulation stream where users can chain signs together to form complete sentences.
+2. **Instant Sign Status**: Active sign identification preview with auto-hold progression indicator.
+3. **Live Sentence Formulation Stream**: Dynamic token accumulation stream that automatically appends words as you sign and speaks the complete sentence when you lower your hands.
 4. **Telemetry & Model Diagnostics**: Live readouts of finger extension states (`[Index, Middle, Ring, Pinky]`), wrist velocity, and roundtrip processing latency.
 
 ---
@@ -66,17 +68,17 @@ flowchart LR
     B --> C["🤖 MediaPipe Core<br/>(21 3D Joint Landmarks)"]
     C --> D["📐 Geometric Decision Engine<br/>(Euclidean Ratios & Motion)"]
     D --> E["🛡️ Temporal Stability Buffer<br/>(Majority Rolling Vote)"]
-    E --> F["🧩 Sentence Formulation Engine<br/>(NLP Heuristic Sequences)"]
+    E --> F["🧩 Sentence Formulation Engine<br/>(Auto Word Accumulation)"]
     F --> G["🌐 Multilingual Translation<br/>(Pre-warmed Lexicon / Google API)"]
-    G --> H["🔊 Microsoft Edge-TTS<br/>(Neural Audio Synthesis)"]
-    H --> I["🎧 WebAudio Dashboard<br/>(Audio Playback & Landmark Overlay)"]
+    G --> H["🔊 Microsoft Edge-TTS<br/>(Auto-Speech on Hand Lowered)"]
+    H --> I["🎧 WebAudio Dashboard<br/>(Speech Playback & Visualizer)"]
 ```
 
 ---
 
 ## 🖐️ Gesture Vocabulary Matrix
 
-Sign2Voice recognizes a rich set of conversational signs, numbers, emergency signals, and American Sign Language (ASL) alphabets:
+Sign2Voice recognizes a rich set of 15 conversational signs, numbers, emergency signals, and American Sign Language (ASL) alphabets:
 
 <p align="center">
   <img src="assets/gesture_matrix.png" alt="Sign2Voice Gesture Vocabulary Matrix" width="100%" />
@@ -87,11 +89,13 @@ Sign2Voice recognizes a rich set of conversational signs, numbers, emergency sig
 | **Hello** | 👋 | All 4 fingers open + wrist motion velocity $> 0.015$ | Greeting / Attention |
 | **Yes** | 👍 | Closed fist with thumb vertically extended upwards | Affirmation / Approval |
 | **No** | 👎 | Closed fist with thumb pointing downwards | Rejection / Disagreement |
-| **Victory** | ✌️ | Index and middle fingers extended in V-shape | Victory / Peace / Success |
+| **2 / Victory** | ✌️ | Index and middle fingers extended in V-shape | Victory / Peace / Success |
 | **I Love You**| 🤟 | Thumb, index finger, and pinky finger open (ASL ILY) | Affection / Appreciation |
-| **Help** | 🤙 | Thumb and pinky open (Emergency / Shaka sign) | Urgent Assistance Needed |
+| **Help** | 🤙 | Thumb and pinky open (Emergency / Call me) | Urgent Assistance Needed |
+| **OK** | 👌 | Thumb and index tips touching in circle, 3 fingers open | Agreement / Confirmation |
+| **Rock** | 🤘 | Index and pinky open, middle and ring folded (Horns) | Enthusiasm / Rock On |
+| **Fist** | ✊ | All fingers closed into a tight fist | Stop / Power / Strength |
 | **1** | ☝️ | Only index finger vertically extended | Numerical One |
-| **2** | ✌️ | Index and middle fingers extended | Numerical Two |
 | **3** | 🤟 | Thumb, index, and middle fingers extended | Numerical Three |
 | **4** | 🖖 | Four fingers open with thumb tucked into palm | Numerical Four |
 | **5** | ✋ | All 5 fingers open with static zero-motion hand | Numerical Five / Stop |
@@ -102,16 +106,18 @@ Sign2Voice recognizes a rich set of conversational signs, numbers, emergency sig
 
 ## 🧩 Intelligent Sentence Construction
 
-Individual signs are accumulated into token streams to generate coherent, fluent conversational dialogue:
+Individual signs are automatically accumulated into token streams to generate coherent, fluent conversational dialogue:
 
 | Input Sign Tokens | NLP Synthesized Formulation | Kannada Translation (ಕನ್ನಡ) | Hindi Translation (हिंदी) |
 | :--- | :--- | :--- | :--- |
-| `["Hello"]` | *"Hello! How can I assist you?"* | ನಮಸ್ಕಾರ, ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು? | नमस्ते, मैं आपकी क्या मदद कर सकता हूँ? |
+| `["Hello"]` | *"Hello, whats up"* | ನಮಸ್ಕಾರ, ಏನ ಸಮಾಚಾರ? | नमस्ते, क्या हाल है? |
 | `["Hello", "Yes"]` | *"Hello! Everything looks good."* | ನಮಸ್ಕಾರ! ಎಲ್ಲವೂ ಸರಿಯಾಗಿದೆ. | नमस्ते! सब कुछ ठीक है. |
+| `["Hello", "No"]` | *"Hello, I am afraid I cannot do that."* | ನಮಸ್ಕಾರ, ನನಗೆ ಹಾಗೆ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ. | नमस्ते, मुझे डर है कि मैं ऐसा नहीं कर सकता. |
+| `["Hello", "2"]` | *"Greetings! We have achieved success."* | ನಮಸ್ಕಾರ! ನಾವು ಯಶಸ್ಸನ್ನು ಸಾಧಿಸಿದ್ದೇವೆ. | नमस्ते! हमने सफलता प्राप्त की है. |
 | `["Hello", "I Love You"]` | *"Hello! It is wonderful to see you."* | ನಮಸ್ಕಾರ! ನಿಮ್ಮನ್ನು ನೋಡಿ ತುಂಬಾ ಸಂತೋಷವಾಯಿತು. | नमस्ते! आपसे मिलकर बहुत खुशी हुई. |
-| `["Hello", "Victory"]` | *"Greetings! We have achieved success."* | ನಮಸ್ಕಾರ! ನಾವು ಯಶಸ್ಸನ್ನು ಸಾಧಿಸಿದ್ದೇವೆ. | नमस्ते! हमने सफलता प्राप्त की है. |
-| `["No", "Help"]` | *"I am facing an issue, please help me immediately."* | ನನಗೆ ತಕ್ಷಣ ಸಹಾಯ ಬೇಕಾಗಿದೆ, ದಯವಿಟ್ಟು ಸಹಾಯ ಮಾಡಿ. | मुझे तुरंत मदद की ज़रूरत है, कृपया सहायता करें. |
-| `["Victory", "Yes"]` | *"Yes! We are victorious."* | ಹೌದು! ನಾವು ವಿಜಯಶಾಲಿಗಳು. | हाँ! हम विजयी हैं. |
+| `["2", "Yes"]` | *"Yes! We are the champions."* | ಹೌದು! ನಾವು ಚಾಂಪಿಯನ್ಸ್. | हाँ! हम विजेता हैं. |
+| `["No", "Help"]` | *"I am in trouble, please help me immediately."* | ನಾನು ಕಷ್ಟದಲ್ಲಿದ್ದೇನೆ, ದಯವಿಟ್ಟು ತಕ್ಷಣ ಸಹಾಯ ಮಾಡಿ. | मैं मुसीबत में हूँ, कृपया तुरंत मेरी मदद करें. |
+| `["I Love You"]` | *"I truly appreciate you."* | ನಾನು ನಿಮ್ಮನ್ನು ನಿಜವಾಗಿಯೂ ಮೆಚ್ಚುತ್ತೇನೆ. | मैं वास्तव में आपकी प्रशंसा करता हूं. |
 
 ---
 
@@ -174,8 +180,7 @@ python main.py
 ```
 
 #### 5. Open Web Dashboard
-Navigate to **`http://localhost:8000`** in your browser (Chrome or Edge recommended for optimal WebRTC camera performance).  
-Interactive API Docs are available at **`http://localhost:8000/docs`**.
+Navigate to **`http://localhost:8000`** in your browser (Chrome or Edge recommended for optimal WebRTC camera performance).
 
 ---
 
@@ -189,7 +194,7 @@ python tests/test_api.py
 
 The test validates:
 - System health and engine status (`/api/health`)
-- Supported languages and signs registry (`/api/supported`)
+- Supported languages and 15-gesture registry (`/api/supported`)
 - Multi-token sentence formulation and multilingual translation (`/process_sentence`)
 - Frame processing and temporal majority voting filter (`/process_frame`)
 
@@ -203,18 +208,19 @@ Sign2Voice/
 │   ├── banner.png                  # High-res GitHub project banner
 │   ├── architecture_diagram.png    # Detailed technical architecture diagram
 │   ├── dashboard_screenshot.png    # High-fidelity UI dashboard screenshot
-│   └── gesture_matrix.png          # Visual gesture reference matrix
+│   └── gesture_matrix.png          # Visual 15-gesture reference matrix
 ├── docs/
 │   └── API.md                      # Comprehensive REST API specifications
 ├── scripts/
-│   └── generate_assets.py          # Programmatic visual asset generation script
+│   ├── generate_assets.py          # Programmatic visual asset generation script
+│   └── setup_nginx.sh              # Production Nginx reverse-proxy deployment script
 ├── static/
 │   ├── audio/
 │   │   └── .gitkeep                # Audio storage directory (MP3 files gitignored)
 │   ├── css/
 │   │   └── style.css               # Glassmorphic dark theme stylesheet
 │   ├── js/
-│   │   └── app.js                  # Webcam controller, canvas landmarks, TTS audio
+│   │   └── app.js                  # Hands-free auto-accumulating webcam controller
 │   └── index.html                  # Main Web Dashboard UI
 ├── tests/
 │   └── test_api.py                 # Automated pipeline and endpoint test suite
@@ -230,20 +236,6 @@ Sign2Voice/
 ├── translation_service.py          # Multilingual dictionary & Google Translate fallback
 └── tts_service.py                  # Edge-TTS voice synthesis engine with caching
 ```
-
----
-
-## 🗺️ Roadmap & Future Enhancements
-
-- [x] Real-time 21-point hand tracking with MediaPipe
-- [x] Euclidean distance knuckle-to-wrist geometric decision algorithms
-- [x] Temporal stability smoothing buffer (3-frame rolling majority)
-- [x] Edge-TTS neural speech across 5 regional Indian languages
-- [x] Full sentence synthesis from token sequences
-- [ ] Two-handed ASL / ISL gesture recognition support
-- [ ] Dynamic LSTM / Transformer gesture sequence model for complex sign sentences
-- [ ] Mobile PWA deployment with offline client-side ONNX runtime
-- [ ] WebSocket streaming endpoint for ultra-low latency sub-20ms frame transfer
 
 ---
 
