@@ -1,8 +1,15 @@
-fastapi
-uvicorn
-mediapipe
-deep-translator
-edge-tts
-opencv-python
-aiofiles
-numpy
+# Web Framework & API Server
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+aiofiles>=23.2.1
+
+# Computer Vision & Machine Learning
+mediapipe>=0.10.9
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Translation & Voice Synthesis
+deep-translator>=1.11.4
+edge-tts>=6.1.9

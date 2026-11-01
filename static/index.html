@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign2Voice - AI Sign Language to Multilingual Voice System</title>
+  <meta name="description" content="Real-time Sign Language detection, sentence translation, and Edge-TTS neural voice synthesis in English, Hindi, Kannada, Tamil, and Telugu.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤟</text></svg>">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon">🤟</div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h1 class="brand-title">Sign2Voice</h1>
+          <span class="brand-badge">v2.0 Neural</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          AI Sign Language to Multilingual Voice Synthesizer
+        </p>
+      </div>
+    </div>
+
+    <div class="header-status-group">
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span id="system-status-text">Engine Ready</span>
+      </div>
+
+      <button id="btn-guide" class="header-btn" title="View Gesture Matrix">
+        <span>📖</span>
+        <span>Gesture Guide</span>
+      </button>
+
+      <a href="/docs" target="_blank" class="header-btn" title="Open API Documentation" style="text-decoration: none;">
+        <span>⚡</span>
+        <span>API Docs</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main App Layout -->
+  <main class="main-layout">
+
+    <!-- Left Column: Video Feed & Vision Overlay -->
+    <section class="glass-panel video-card">
+      <div class="card-header-row">
+        <div class="card-title">
+          <span>📹</span>
+          <span>Live Vision Stream</span>
+        </div>
+        <div class="fps-selector">
+          <label for="fps-select">Sampling Rate:</label>
+          <select id="fps-select">
+            <option value="3">3 FPS (Low Bandwidth)</option>
+            <option value="5" selected>5 FPS (Balanced)</option>
+            <option value="8">8 FPS (Smooth)</option>
+            <option value="12">12 FPS (Real-time)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Video Feed Viewport -->
+      <div class="video-container">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="landmark-canvas"></canvas>
+
+        <!-- High-tech HUD Brackets -->
+        <div class="hud-corner corner-tl"></div>
+        <div class="hud-corner corner-tr"></div>
+        <div class="hud-corner corner-bl"></div>
+        <div class="hud-corner corner-br"></div>
+
+        <!-- Vision HUD Badge -->
+        <div class="camera-badge">
+          <span style="color: var(--accent-cyan);">●</span>
+          <span>MediaPipe 21-Landmark Core</span>
+        </div>
+
+        <!-- Live Detected Sign Floating Bar -->
+        <div class="gesture-live-pill">
+          <div class="live-sign-title">
+            <span id="live-sign-icon" class="live-sign-icon">✨</span>
+            <div>
+              <div id="live-sign-name" class="live-sign-text">Waiting for Camera...</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Current Active Gesture</div>
+            </div>
+          </div>
+          <div id="live-debug-info" class="live-debug-text">F:[0, 0, 0, 0] T:-</div>
+        </div>
+      </div>
+
+      <!-- Camera Action Controls -->
+      <div class="camera-controls">
+        <div class="btn-group">
+          <button id="btn-start-cam" class="btn-primary">
+            <span>▶</span>
+            <span>Start Camera</span>
+          </button>
+          <button id="btn-stop-cam" class="btn-secondary" style="display: none;">
+            <span>⏸</span>
+            <span>Stop Camera</span>
+          </button>
+          <button id="btn-flip-cam" class="btn-secondary" title="Flip Camera">
+            <span>🔄</span>
+            <span>Flip</span>
+          </button>
+        </div>
+
+        <button id="btn-add-token" class="btn-secondary" title="Manually push current gesture into sentence builder">
+          <span>➕</span>
+          <span>Add to Sentence</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Column: Multilingual Translation & Sentence Studio -->
+    <div class="side-column">
+
+      <!-- Real-Time Sign Translation Card -->
+      <section class="glass-panel section-card">
+        <div class="card-header-row">
+          <div class="card-title">
+            <span>🌐</span>
+            <span>Instant Translation & Voice</span>
+          </div>
+          <div class="lang-select-wrapper">
+            <label for="lang-select" style="font-size: 12px; color: var(--text-muted);">Target:</label>
+            <select id="lang-select" class="lang-select">
+              <option value="English" selected>English</option>
+              <option value="Hindi">हिंदी (Hindi)</option>
+              <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+              <option value="Tamil">தமிழ் (Tamil)</option>
+              <option value="Telugu">తెలుగు (Telugu)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Output Box -->
+        <div class="translation-box">
+          <div class="translation-label">Translated Speech Result</div>
+          <div id="live-translated-text" class="translation-result">...</div>
+        </div>
+
+        <div class="action-row">
+          <div class="audio-player-bar">
+            <button id="btn-play-audio" class="audio-btn" title="Replay Audio">
+              <span>🔊</span>
+            </button>
+            <div class="audio-bars">
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+              <div class="audio-bar"></div>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);">Edge-TTS Neural Voice</span>
+          </div>
+
+          <span style="font-size: 12px; color: var(--text-dim);">Auto-Speak Enabled</span>
+        </div>
+      </section>
+
+      <!-- Smart Sentence Construction Studio -->
+      <section class="glass-panel section-card">
+        <div class="card-header-row">
+          <div class="card-title">
+            <span>🧩</span>
+            <span>Sentence Construction Studio</span>
+          </div>
+          <button id="btn-clear-tokens" class="header-btn" style="padding: 4px 10px; font-size: 12px;">
+            <span>🗑</span>
+            <span>Clear</span>
+          </button>
+        </div>
+
+        <!-- Token Accumulation Stream -->
+        <div id="token-container" class="token-stream-box">
+          <span class="token-placeholder">Detected sign tokens will collect here (e.g., Hello, Yes)...</span>
+        </div>
+
+        <div class="sentence-controls">
+          <button id="btn-synthesize" class="btn-synthesize">
+            <span>✨</span>
+            <span>Synthesize & Speak Full Sentence</span>
+          </button>
+        </div>
+
+        <!-- Formulated Sentence Card -->
+        <div class="sentence-result-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="translation-label">NLP Synthesized Formulation</div>
+            <button id="btn-play-sentence-audio" class="header-btn" style="padding: 2px 8px; font-size: 11px;">
+              <span>🔊 Replay</span>
+            </button>
+          </div>
+          <div id="sentence-original-text" class="sentence-original">"Hello! Everything looks good."</div>
+          <div id="sentence-translated-text" class="sentence-translated">...</div>
+        </div>
+      </section>
+
+      <!-- Real-Time Telemetry & Diagnostics -->
+      <section class="glass-panel section-card">
+        <div class="card-title">
+          <span>📊</span>
+          <span>Telemetry & Model Diagnostics</span>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="telemetry-label">Finger States</span>
+            <span id="telemetry-fingers" class="telemetry-value">[0, 0, 0, 0]</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Wrist Velocity</span>
+            <span id="telemetry-motion" class="telemetry-value">0.00</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Roundtrip Latency</span>
+            <span id="telemetry-latency" class="telemetry-value">0ms</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal: Gesture Reference Matrix -->
+  <div id="modal-guide" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">📖</span>
+          <h2 style="font-size: 18px; color: #fff;">Supported Gestures Cheatsheet</h2>
+        </div>
+        <button id="btn-close-guide" class="modal-close">&times;</button>
+      </div>
+
+      <div id="guide-grid" class="gesture-guide-grid">
+        <!-- Dynamically populated or static cards -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -10,23 +10,27 @@ python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] Python is not found in your PATH.
     echo.
-    echo Please install Python from https://python.org/downloads
-    echo IMPORTANT: Check the box "Add Python to PATH" during installation.
+    echo Please install Python 3.10+ from https://python.org/downloads
+    echo IMPORTANT: Make sure to check the box "Add Python to PATH" during installation.
     echo.
     pause
-    exit /b
+    exit /b 1
 )
 
-echo [2/3] Installing Dependencies...
-python -m pip install "protobuf==3.20.3" fastapi uvicorn "mediapipe==0.10.9" deep-translator edge-tts opencv-python aiofiles numpy python-multipart
+echo [2/3] Installing / Verifying Dependencies...
+python -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
-    echo [WARNING] There was an issue installing dependencies. Attempting to continue...
+    echo [WARNING] Dependency installation reported warnings. Attempting to start server...
 )
 
-echo [3/3] Starting Server...
+echo.
+echo [3/3] Starting Sign2Voice Server...
 echo.
 echo Application will start at: http://localhost:8000
-echo Ctrl+C to stop.
+echo Web dashboard: http://localhost:8000
+echo API Docs:      http://localhost:8000/docs
+echo Press Ctrl+C to stop.
 echo.
+
 python main.py
 pause
